@@ -546,8 +546,37 @@ def load_fixed_recourse_two_stage_stoch_linear_program_eq_constraints(path):
         h = h_next
         q = q_next
         p = p_next
-    
-    # TODO: BLOCK SUPPORT
+
+    for key, block in d["blocks"].items():
+        T_next = []
+        h_next = []
+        q_next = []
+        p_next = []
+        if isinstance(block, Block):
+            for i in range(len(block.probabilities)):
+                for t in range(len(T)):
+                    # handle T
+                    T_add = np.copy(T[t])
+                    h_add = np.copy(h[t])
+                    q_add = np.copy(q[t])
+                    for location, value in block.cases[i]["A"].items():
+                        k = stochastic_rows.index(location[0])
+                        j = deterministic_cols.index(location[1])
+                        T_add[k, j] = value
+                    for location, value in block.cases[i]["b"].items():
+                        k = stochastic_rows.index(location)
+                        h_add[k] = value
+                    for location, value in block.cases[i]["c"].items():
+                        j = deterministic_cols.index(location)
+                        q_add[j] = value
+                    T_next.append(T_add)
+                    h_next.append(h_add)
+                    q_next.append(q_add)
+                    p_next.append(p[t] * block.probabilities[i])
+        T = T_next
+        h = h_next
+        q = q_next
+        p = p_next
     
     assert len(T) == len(h)
     assert len(T) == len(p)
