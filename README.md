@@ -15,4 +15,4 @@ You maybe want the folder you cloned to be in your PYTHONPATH, so check that if 
 This module exports the functions `load_lp` for loading mps files and `load_smps` for loading smps directories.
 ## TODO
 - [ ] Scenario support in sto file parsing.
-- [ ] Block support in 2-stage problem casting.
+- [x] Block support in 2-stage problem casting.
