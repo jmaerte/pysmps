@@ -8,7 +8,7 @@ with open("README.md", "r") as readme_file:
 
 setup(
     name='pysmps',
-    version='1.0',
+    version='1.2',
     description='Script for loading SMPS format directories into python.',
 	long_description=readme,
 	long_description_content_type="text/markdown",
