@@ -1,4 +1,4 @@
-# py-smps-loader
+# smps_py_parser
 Utility for parsing smps files.
 ## Installation
 Clone this repository and execute
