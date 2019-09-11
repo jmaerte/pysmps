@@ -1,10 +1,10 @@
 # pysmps
 
-This is a utility script for parsing MPS and SMPS file formats. It offers two main functions `load_lp` for loading mps files and `load_smps` for loading smps file directory.
+This is a utility script for parsing MPS and SMPS file formats. It offers two main functions `load_mps` for loading mps files and `load_smps` for loading smps file directory.
 
-### `load_lp`
+### `load_mps`
 
-The `load_lp(path)` method takes a `path` variable as input. It should be a .cor or .mps file.
+The `load_mps(path)` method takes a `path` variable as input. It should be a .cor or .mps file.
 It opens the file with read-permissions and parses the described linear program into the following format:
 
 - `name`: The name given to the linear program (can't be blank)
@@ -24,7 +24,7 @@ Finally this corresponds to the linear program
 ```python
 min 	c * x
 
-w.r.t.	for each rhs_name with corresponding b:
+s.t.	for each rhs_name with corresponding b:
 
 			A[types == "E",:] * x  = b[types == "E"]
 			A[types == "L",:] * x <= b[types == "L"]
@@ -32,7 +32,7 @@ w.r.t.	for each rhs_name with corresponding b:
 
 		for each bnd_name with corresponding v_l and v_u:
 
-			v_l <= x <= v_u
+			v_l <= x < v_u
 
 ```
 
@@ -76,7 +76,7 @@ For an example on how to use this format i recommand looking at the code for `lo
 
 ### `load_2stage_problem`
 
-Loads a SMPS directory and tries to bring it into a 2-staged L-shaped stochastic linear program with fixed recourse. Output is a dictionary containing the values
+Loads a SMPS directory and tries to bring it into a 2-staged stochastic linear program with fixed recourse. Output is a dictionary containing the values
 
 - `c`: first stage objective function value
 - `A`: first stage (equality) constraint coefficient matrix
@@ -88,3 +88,29 @@ Loads a SMPS directory and tries to bring it into a 2-staged L-shaped stochastic
 - `p`: list of probabilities for each case
 
 The constellations in which `(q,h,T,W)` appear are the realizations given by `(q[k], h[k], T[k], W)`.
+The problem then resembles one of the form
+
+```python
+min		c * x + E_p[q * y]
+
+s.t.	A * x         = b
+    	T * x + W * y = h
+    	x, y >= 0
+```
+
+which is a formal expression since T and h are also stochastic. In fact this notation means we assert the stochastic constraints inside of the expectation, making it a function of x only.
+
+For casting the SMPS files into such a form we need to make certain assertments:
+
+- The upper right matrix needs to be zeroes only.
+- We only have one righthand side defined (`len(rhs_names) == 1`).
+- There are no boundaries or if we defined some they are the default values.
+- The first period parsed from the time file is the deterministic one, the other one is the stochastic one (especially there can only be two periods).
+- `A` and `W` are not stochastic.
+
+This script however does
+
+- convert inequality constraints (deterministic and stochastic) into equality constraints by adding slack variables at the right places
+- calculate all combinations of independent accurances of stochastic components (BLOCKS and INDEP)
+- calculate the probabilities as products of independent elementary probabilities alongside.
+

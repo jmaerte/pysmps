@@ -461,6 +461,10 @@ def load_2stage_problem(path):
     b = d["rhs"][d["rhs_names"][0]][deterministic_rows]
     h_array = d["rhs"][d["rhs_names"][0]][stochastic_rows]
     
+    for key, bound in d["bounds"].items():
+        assert np.count_nonzero(bound["LO"]) == 0
+        assert np.sum(np.isinf(bound["UP"])) == bound["UP"].size
+    
     # Assert A and W are not stochastic
     for key, block in d["blocks"].items():
         if isinstance(block, Block):
