@@ -278,7 +278,7 @@ def _load_stoch_file(path, name, objective_name, row_names, col_names, rhs_names
             elif mode == STOCH_FILE_INDEP_DISCRETE_MODE:
                 i, j = _get_indices(row_names, col_names, line)
                 if (i,j) in independent_variables:
-                    independent_variables[(i,j)]["distrib (v, p)"].append((float(line[2]), float(line[4])))
+                    independent_variables[(i,j)]["distrib"].append((float(line[2]), float(line[4])))
                 else:
                     if i < 0:
                         description = {"type": line[1], "VAR": j}
@@ -286,7 +286,7 @@ def _load_stoch_file(path, name, objective_name, row_names, col_names, rhs_names
                         description = {"type": line[0], "ROW": i}
                     else:
                         description = {"type": "matrix", "ROW": i, "COL": j}
-                    independent_variables[(i,j)] = {"position": description, "period": line[3], "distrib (v, p)": [(float(line[2]), float(line[4]))]}
+                    independent_variables[(i,j)] = {"position": description, "period": line[3], "distrib": [(float(line[2]), float(line[4]))]}
             elif mode == STOCH_FILE_INDEP_DISTRIB_MODE:
                 i, j = _get_indices(row_names, col_names, line)
                 if (i,j) in independent_variables:
@@ -327,7 +327,7 @@ def _get_indices(row_names, col_names, line):
         pass
     return i, j
 # public
-def load_lp(path):
+def load_mps(path):
     mode = ""
     name = None
     objective_name = None
@@ -341,7 +341,7 @@ def load_lp(path):
     bnd_names = []
     bnd = {}
     
-    with open(path + ".cor", "r") as reader:
+    with open(path, "r") as reader:
         for line in reader:
             line = re.split(" |\t", line)
             line = [x.strip() for x in line]
@@ -432,14 +432,14 @@ def load_lp(path):
     return name, objective_name, row_names, col_names, types, c, A, rhs_names, rhs, bnd_names, bnd
 
 def load_smps(path):
-    name, objective_name, row_names, col_names, types, c, A, rhs_names, rhs, bnd_names, bnd = load_lp(path)
+    name, objective_name, row_names, col_names, types, c, A, rhs_names, rhs, bnd_names, bnd = load_mps(path + ".cor")
     periods, row_periods, col_periods = _load_time_file(path, name, row_names, col_names)
     blocks, independent_variables = _load_stoch_file(path, name, objective_name, row_names, col_names, rhs_names)
     return {"name": name, "objective_name": objective_name, "constraints": [(row_names[i], row_periods[i], types[i]) for i in range(len(row_names))], "variables": [(col_names[i], col_periods[i]) for i in range(len(col_names))], "c": c, "A": A, "rhs_names": rhs_names, "rhs": rhs, "bounds": bnd, "periods": periods, "blocks": blocks, "independent_variables": independent_variables}
     
 
 
-def load_fixed_recourse_two_stage_stoch_linear_program_eq_constraints(path):
+def load_2stage_problem(path):
     d = load_smps(path)
     print("Loaded problem", d["name"])
     print("Assuming", d["periods"][0], "to be the deterministic period and", d["periods"][1], "to be the stochastic one.")
@@ -514,7 +514,7 @@ def load_fixed_recourse_two_stage_stoch_linear_program_eq_constraints(path):
         h_next = []
         q_next = []
         p_next = []
-        for vp in indep["distrib (v, p)"]:
+        for vp in indep["distrib"]:
             for i in range(len(T)):
                 if key[0] < 0:
                     j = stochastic_cols.index(key[1])

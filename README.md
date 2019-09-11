@@ -1,18 +1,16 @@
 # pysmps
-Utility for parsing smps files.
+Utilities for parsing MPS and SMPS file formats.
 ## Installation
-Clone this repository and execute
+You can install this package using PyPI with the command
 ```bash
-pip install -e .
+pip install pysmps
 ```
-inside the cloned folder. This should install the module *smpspy* to your pip list. You can then import this module using
+After installation you can import the reader as
 ```python
 from pysmps import smps_loader as smps
 ```
-at the beginning of your python code.
-You maybe want the folder you cloned to be in your PYTHONPATH, so check that if it is not working.
-## Functions
-This module exports the functions `load_lp` for loading mps files and `load_smps` for loading smps directories.
+at the beginning of your python code. For full documentation take a look at the PyPI page, <https://pypi.org/project/pysmps/>.
+
 ## TODO
 - [ ] Scenario support in sto file parsing.
 - [x] Block support in 2-stage problem casting.

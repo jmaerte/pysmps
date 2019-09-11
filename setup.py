@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 with open('requirements.txt', "r") as reader:
     required = reader.read().splitlines()
 
-with open("README.md", "r") as readme_file:
+with open("PYPI_README.md", "r") as readme_file:
     readme = readme_file.read()
 
 setup(
