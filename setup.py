@@ -8,7 +8,7 @@ with open("PYPI_README.md", "r") as readme_file:
 
 setup(
     name='pysmps',
-    version='1.4',
+    version='1.5',
     description='Utilities for parsing MPS and SMPS file formats.',
 	long_description=readme,
 	long_description_content_type="text/markdown",

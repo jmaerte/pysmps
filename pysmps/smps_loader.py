@@ -586,5 +586,5 @@ def load_2stage_problem(path):
     assert len(T) == len(p)
     assert len(T) == len(q)
     
-    return {"c": c, "A": A, "b": b, "q": q, "h": h, "T": T, "W": W, "p": p}
+    return {"name": d["name"], "c": c, "A": A, "b": b, "q": q, "h": h, "T": T, "W": W, "p": p}
     
