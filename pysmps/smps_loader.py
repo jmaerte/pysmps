@@ -334,12 +334,14 @@ def load_mps(path):
     row_names = []
     types = []
     col_names = []
+    col_types = []
     A = np.matrix([[]])
     c = np.array([])
     rhs_names = []
     rhs = {}
     bnd_names = []
     bnd = {}
+    integral_marker = False
     
     with open(path, "r") as reader:
         for line in reader:
@@ -376,6 +378,12 @@ def load_mps(path):
                     types.append(line[0])
                     row_names.append(line[1])
             elif mode == CORE_FILE_COL_MODE:
+                if len(line) > 1 and line[1] == "'MARKER'":
+                    if line[2] == "'INTORG'":
+                        integral_marker = True
+                    elif line[2] == "'INTEND'":
+                        integral_marker = False
+                    continue
                 try:
                     i = col_names.index(line[0])
                 except:
@@ -384,6 +392,7 @@ def load_mps(path):
                     else:
                         A = np.concatenate((A, np.zeros((len(row_names), 1))), axis = 1)
                     col_names.append(line[0])
+                    col_types.append(integral_marker * 'integral' + (not integral_marker) * 'continuous')
                     c = np.append(c, 0)
                     i = -1
                 j = 1
@@ -429,13 +438,13 @@ def load_mps(path):
                     bnd[line[1]]["UP"][col_names.index(line[2])] = float(line[3])
                 elif line[0] == "FR":
                     bnd[line[1]]["LO"][col_names.index(line[2])] = -math.inf
-    return name, objective_name, row_names, col_names, types, c, A, rhs_names, rhs, bnd_names, bnd
+    return name, objective_name, row_names, col_names, col_types, types, c, A, rhs_names, rhs, bnd_names, bnd
 
 def load_smps(path):
-    name, objective_name, row_names, col_names, types, c, A, rhs_names, rhs, bnd_names, bnd = load_mps(path + ".cor")
+    name, objective_name, row_names, col_names, col_types, types, c, A, rhs_names, rhs, bnd_names, bnd = load_mps(path + ".cor")
     periods, row_periods, col_periods = _load_time_file(path, name, row_names, col_names)
     blocks, independent_variables = _load_stoch_file(path, name, objective_name, row_names, col_names, rhs_names)
-    return {"name": name, "objective_name": objective_name, "constraints": [(row_names[i], row_periods[i], types[i]) for i in range(len(row_names))], "variables": [(col_names[i], col_periods[i]) for i in range(len(col_names))], "c": c, "A": A, "rhs_names": rhs_names, "rhs": rhs, "bounds": bnd, "periods": periods, "blocks": blocks, "independent_variables": independent_variables}
+    return {"name": name, "objective_name": objective_name, "constraints": [(row_names[i], row_periods[i], types[i]) for i in range(len(row_names))], "variables": [(col_names[i], col_periods[i], col_types[i]) for i in range(len(col_names))], "c": c, "A": A, "rhs_names": rhs_names, "rhs": rhs, "bounds": bnd, "periods": periods, "blocks": blocks, "independent_variables": independent_variables}
     
 
 
