@@ -405,7 +405,9 @@ def load_mps(path):
             elif mode == CORE_FILE_RHS_MODE_NAME_GIVEN:
                 if line[0] != rhs_names[-1]:
                     raise Exception("Other RHS name was given even though name was set after RHS tag.")
-                rhs[line[0]][row_names.index(line[1])] = float(line[2])
+                for kk in range((len(line) - 1) // 2):
+                  idx = kk * 2
+                  rhs[line[0]][row_names.index(line[idx+1])] = float(line[idx+2])
             elif mode == CORE_FILE_RHS_MODE_NO_NAME:
                 try:
                     i = rhs_names.index(line[0])
@@ -413,7 +415,9 @@ def load_mps(path):
                     rhs_names.append(line[0])
                     rhs[line[0]] = np.zeros(len(row_names))
                     i = -1
-                rhs[line[0]][row_names.index(line[1])] = float(line[2])
+                for kk in range((len(line) - 1) // 2):
+                  idx = kk * 2
+                  rhs[line[0]][row_names.index(line[idx+1])] = float(line[idx+2])
             elif mode == CORE_FILE_BOUNDS_MODE_NAME_GIVEN:
                 if line[1] != bnd_names[-1]:
                     raise Exception("Other BOUNDS name was given even though name was set after BOUNDS tag.")
@@ -596,4 +600,4 @@ def load_2stage_problem(path):
     assert len(T) == len(q)
     
     return {"name": d["name"], "c": c, "A": A, "b": b, "q": q, "h": h, "T": T, "W": W, "p": p}
-    
+
