@@ -48,7 +48,7 @@ It returns a stochastic multi-stage problem in the following format
 
 - `constraints`: list of tuples `(name, period, type)` for each constraint. It gives a name, a period in which the constraints appears and a type, i.e. "E", "L" or "G" as in MPS.
 
-- `variables`: list of tuples `(name, period)` for each variable. It defines a name and a period in which the variable joins the program.
+- `variables`: list of tuples `(name, period, type)` for each variable. It defines a name and a period in which the variable joins the program. `type` denotes a string that is either integral or continuous depending on whether the INTORG MARKER was set when instantiating the variable.
 
 - `c`: vector of objective function coefficients (of all periods)
 

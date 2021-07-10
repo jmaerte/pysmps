@@ -6,6 +6,7 @@ Created on Sun Sep  8 13:28:53 2019
 """
 
 import re
+import numpy as np
 import math
 import copy
 
@@ -90,7 +91,7 @@ class LinearTransform(object):
     _mapping = {}
     places = []
     variables = []
-    matrix = [[]]
+    matrix = np.matrix([[]])
     period = ""
     
     def __init__(self, period):
@@ -103,10 +104,9 @@ class LinearTransform(object):
     def add_distribution(self, type_of, name, parameters):
         self.variables.append({"type": type_of, "name": name, "parameters": parameters})
         if self.matrix.shape[1] == 0:
-            self.matrix = [[0]] * len(self.places)
+            matrix = np.zeros((len(self.places),1))
         else:
-            for k in len(self.matrix):
-                self.matrix[k].append(0)
+            matrix = np.append((matrix, np.zeros((len(self.places), 1))), axis = 1)
     def add_value(self, i, j, value):
         self.matrix[self._mapping[(i,j)],-1] = value
 
@@ -344,8 +344,8 @@ def load_mps(path):
     types = []
     col_names = []
     col_types = []
-    A = [[]]
-    c = []
+    A = np.matrix([[]])
+    c = np.array([])
     rhs_names = []
     rhs = {}
     bnd_names = []
@@ -374,14 +374,14 @@ def load_mps(path):
             elif line[0] == CORE_FILE_RHS_MODE and len(line) <= 2:
                 if len(line) > 1:
                     rhs_names.append(line[1])
-                    rhs[line[1]] = [0] * len(row_names)
+                    rhs[line[1]] = np.zeros(len(row_names))
                     mode = CORE_FILE_RHS_MODE_NAME_GIVEN
                 else:
                     mode = CORE_FILE_RHS_MODE_NO_NAME
             elif line[0] == CORE_FILE_BOUNDS_MODE and len(line) <= 2:
                 if len(line) > 1:
                     bnd_names.append(line[1])
-                    bnd[line[1]] = {"LO": [0] * len(col_names), "UP": [math.inf] * len(col_names)}
+                    bnd[line[1]] = {"LO": np.zeros(len(col_names)), "UP": np.repeat(math.inf, len(col_names))}
                     mode = CORE_FILE_BOUNDS_MODE_NAME_GIVEN
                 else:
                     mode = CORE_FILE_BOUNDS_MODE_NO_NAME
@@ -401,21 +401,20 @@ def load_mps(path):
                 try:
                     i = col_names.index(line[0])
                 except:
-                    if len(A[0]) == 0:
-                        A = [[0]] * len(row_names)
+                    if A.shape[1] == 0:
+                        A = np.zeros((len(row_names), 1))
                     else:
-                        for k in range(len(row_names)):
-                            A[k].append(0)
+                        A = np.concatenate((A, np.zeros((len(row_names), 1))), axis = 1)
                     col_names.append(line[0])
                     col_types.append(integral_marker * 'integral' + (not integral_marker) * 'continuous')
-                    c.append(0)
+                    c = np.append(c, 0)
                     i = -1
                 j = 1
                 while j < len(line) - 1:
                     if line[j] == objective_name:
                         c[i] = float(line[j + 1])
                     else:
-                        A[row_names.index(line[j])][i] = float(line[j + 1])
+                        A[row_names.index(line[j]), i] = float(line[j + 1])
                     j = j + 2
             elif mode == CORE_FILE_RHS_MODE_NAME_GIVEN:
                 if line[0] != rhs_names[-1]:
@@ -428,7 +427,7 @@ def load_mps(path):
                     i = rhs_names.index(line[0])
                 except:
                     rhs_names.append(line[0])
-                    rhs[line[0]] = [0] * len(row_names)
+                    rhs[line[0]] = np.zeros(len(row_names))
                     i = -1
                 for kk in range((len(line) - 1) // 2):
                   idx = kk * 2
@@ -448,7 +447,7 @@ def load_mps(path):
                     i = bnd_names.index(line[1])
                 except:
                     bnd_names.append(line[1])
-                    bnd[line[1]] = {"LO": [0] * len(col_names), "UP": [math.inf] * len(col_names)}
+                    bnd[line[1]] = {"LO": np.zeros(len(col_names)), "UP": np.repeat(math.inf, len(col_names))}
                     i = -1
                 if line[0] in ["LO", "UP"]:
                     bnd[line[1]][line[0]][col_names.index(line[2])] = float(line[3])
@@ -478,7 +477,7 @@ def load_2stage_problem(path):
     stochastic_cols = [i for i in range(len(d["variables"])) if d["variables"][i][1] == d["periods"][1]]
     
     A = d["A"][deterministic_rows,:][:,deterministic_cols]
-    assert sum(sum(1 for j in stochastic_cols if d["A"][i][j]) for i in deterministic_rows) == 0
+    assert np.count_nonzero(d["A"][deterministic_rows,:][:,stochastic_cols]) == 0
     W = d["A"][stochastic_rows,:][:,stochastic_cols]
     T_matrix = d["A"][stochastic_rows,:][:,deterministic_cols]
     
@@ -490,8 +489,8 @@ def load_2stage_problem(path):
     h_array = d["rhs"][d["rhs_names"][0]][stochastic_rows]
     
     for key, bound in d["bounds"].items():
-        assert sum(1 for i in bound["LO"] if i) == 0
-        assert sum(1 for i in bound["UP"] if i == math.inf) == bound["UP"].size
+        assert np.count_nonzero(bound["LO"]) == 0
+        assert np.sum(np.isinf(bound["UP"])) == bound["UP"].size
     
     # Assert A and W are not stochastic
     for key, block in d["blocks"].items():
@@ -516,28 +515,25 @@ def load_2stage_problem(path):
     stochastic_cnstr = [row[2] for row in d["constraints"] if row[1] == d["periods"][1]]
     #deterministic
     determ_ineq = sum(x != "E" for x in determ_cnstr)
-    c.extend([0] * determ_ineq)
-    for k in range(len(T_matrix)):
-        T_matrix[k].extend([0] * determ_ineq)
-    A_add = [[0] * determ_ineq] * len(A)
+    c = np.concatenate((c, np.zeros(determ_ineq)))
+    T_matrix = np.concatenate((T_matrix, np.zeros((T_matrix.shape[0], determ_ineq))), axis = 1)
+    A_add = np.zeros((A.shape[0], determ_ineq))
     k = 0
-    for i in range(len(A)):
+    for i in range(A.shape[0]):
         if determ_cnstr[i] != "E":
             A_add[i, k] = 1 if determ_cnstr[i] == "L" else -1
             k = k + 1
-    for k in len(A):
-        A[k].extend(A_add[k])
+    A = np.concatenate((A, A_add), axis = 1)
     
     stochastic_ineq = sum(x != "E" for x in stochastic_cnstr)
-    q_array.extend([0] * stochastic_ineq)
-    W_add = [[0] * stochastic_ineq] * len(W)
+    q_array = np.concatenate((q_array, np.zeros(stochastic_ineq)))
+    W_add = np.zeros((W.shape[0], stochastic_ineq))
     k = 0
     for i in range(W.shape[0]):
         if stochastic_cnstr[i] != "E":
             W_add[i, k] = 1 if stochastic_cnstr[i] == "L" else -1
             k = k + 1
-    for k in range(len(W)):
-        W[k].extend(W_add[k])
+    W = np.concatenate((W, W_add), axis = 1)
     
     T = [T_matrix]
     h = [h_array]
@@ -554,7 +550,7 @@ def load_2stage_problem(path):
                 if key[0] < 0:
                     j = stochastic_cols.index(key[1])
                     # objective
-                    add = q[i].copy()
+                    add = np.copy(q[i])
                     add[j] = vp[0]
                     q_next.append(add)
                     p_next.append(p[i] * vp[1])
@@ -562,7 +558,7 @@ def load_2stage_problem(path):
                     h_next.append(h[i])
                 elif key[1] < 0:
                     k = stochastic_rows.index(key[0])
-                    add = h[i].copy()
+                    add = np.copy(h[i])
                     add[k] = vp[0]
                     h_next.append(add)
                     p_next.append(p[i] * vp[1])
@@ -571,7 +567,7 @@ def load_2stage_problem(path):
                 else:
                     k = stochastic_rows.index(key[0])
                     j = deterministic_cols.index(key[1])
-                    add = T[i].copy()
+                    add = np.copy(T[i])
                     add[k, j] = vp[0]
                     T_next.append(add)
                     p_next.append(p[i] * vp[1])
@@ -591,9 +587,9 @@ def load_2stage_problem(path):
             for i in range(len(block.probabilities)):
                 for t in range(len(T)):
                     # handle T
-                    T_add = T[t].copy()
-                    h_add = h[t].copy()
-                    q_add = q[t].copy()
+                    T_add = np.copy(T[t])
+                    h_add = np.copy(h[t])
+                    q_add = np.copy(q[t])
                     for location, value in block.cases[i]["A"].items():
                         k = stochastic_rows.index(location[0])
                         j = deterministic_cols.index(location[1])
