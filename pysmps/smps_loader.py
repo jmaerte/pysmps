@@ -8,6 +8,7 @@ Created on Sun Sep  8 13:28:53 2019
 import re
 import math
 import copy
+import sys
 
 CORE_FILE_ROW_MODE = "ROWS"
 CORE_FILE_COL_MODE = "COLUMNS"
@@ -352,7 +353,16 @@ def load_mps(path):
     bnd = {}
     integral_marker = False
     
+    file_len = sum(1 for line in open(path, "r"))
+    
     with open(path, "r") as reader:
+        sys.stdout.write("[%s]" % (" " * 10))
+        sys.stdout.flush()
+        sys.stdout.write("\b" * (11))
+        
+        line_idx = 0
+        bars = 0
+        
         for line in reader:
             if line.startswith("*"):
                 continue
@@ -457,6 +467,15 @@ def load_mps(path):
                     bnd[line[1]]["UP"][col_names.index(line[2])] = float(line[3])
                 elif line[0] == "FR":
                     bnd[line[1]]["LO"][col_names.index(line[2])] = -math.inf
+                    
+            line_idx = line_idx + 1
+            bars_next = math.floor(10 * line_idx / file_len)
+            if not bars_next == bars or (line_idx % 100 == 0):
+                sys.stdout.write("\r[" + "=" * bars_next + " " * (10 - bars_next) + "] " + str(line_idx) + " / " + str(file_len))
+                bars = bars_next
+                sys.stdout.flush()
+        
+    sys.stdout.write("[" + "=" * 10 + "]\n")
     return name, objective_name, row_names, col_names, col_types, types, c, A, rhs_names, rhs, bnd_names, bnd
 
 def load_smps(path):
