@@ -8,7 +8,6 @@ Created on Sun Sep  8 13:28:53 2019
 import re
 import math
 import copy
-import sys
 
 CORE_FILE_ROW_MODE = "ROWS"
 CORE_FILE_COL_MODE = "COLUMNS"
@@ -47,6 +46,12 @@ STOCH_FILE_BLOCKS_LINTR_MODE = "BLOCKS_LINTR"
 #INDEP modes
 STOCH_FILE_INDEP_DISCRETE_MODE = "INDEP_DISCRETE"
 STOCH_FILE_INDEP_DISTRIB_MODE = "INDEP_DISTRIB"
+
+COL_TYPES = {1: "Integer", 0: "Continuous"}
+BND_TYPES = ["LO", "UP"]
+BND_TYPE = {"LO": "bnd_lower", "UP": "bnd_upper"}
+BND_FUNC = {"LO": max, "UP": min}
+
 
 class Block(object):
     
@@ -336,7 +341,10 @@ def _get_indices(row_names, col_names, line):
     except:
         pass
     return i, j
-# public
+
+
+# PUBLIC
+
 def load_mps(path):
     mode = ""
     name = None
@@ -356,9 +364,8 @@ def load_mps(path):
     file_len = sum(1 for line in open(path, "r"))
     
     with open(path, "r") as reader:
-        sys.stdout.write("[%s]" % (" " * 10))
+        sys.stdout.write("Reading MPS File [%s]" % (" " * 10))
         sys.stdout.flush()
-        sys.stdout.write("\b" * (11))
         
         line_idx = 0
         bars = 0
@@ -471,15 +478,16 @@ def load_mps(path):
             line_idx = line_idx + 1
             bars_next = math.floor(10 * line_idx / file_len)
             if not bars_next == bars or (line_idx % 100 == 0):
-                sys.stdout.write("\r[" + "=" * bars_next + " " * (10 - bars_next) + "] " + str(line_idx) + " / " + str(file_len))
+                sys.stdout.write("\rReading MPS File [" + "=" * bars_next + " " * (10 - bars_next) + "] " + str(line_idx) + " / " + str(file_len))
                 bars = bars_next
                 sys.stdout.flush()
         
-    sys.stdout.write("[" + "=" * 10 + "]\n")
+    sys.stdout.write("\rDone Reading MPS File [" + "=" * 10 + "] " + str(file_len) + " / " + str(file_len) + "\n")
     return name, objective_name, row_names, col_names, col_types, types, c, A, rhs_names, rhs, bnd_names, bnd
 
+
 def load_smps(path):
-    name, objective_name, row_names, col_names, col_types, types, c, A, rhs_names, rhs, bnd_names, bnd = load_mps(path + ".cor")
+    name, objective_name, row_names, col_names, col_types, types, c, A, rhs_names, rhs, bnd_names, bnd = __load_mps(path + ".cor")
     periods, row_periods, col_periods = _load_time_file(path, name, row_names, col_names)
     blocks, independent_variables = _load_stoch_file(path, name, objective_name, row_names, col_names, rhs_names)
     return {"name": name, "objective_name": objective_name, "constraints": [(row_names[i], row_periods[i], types[i]) for i in range(len(row_names))], "variables": [(col_names[i], col_periods[i], col_types[i]) for i in range(len(col_names))], "c": c, "A": A, "rhs_names": rhs_names, "rhs": rhs, "bounds": bnd, "periods": periods, "blocks": blocks, "independent_variables": independent_variables}
