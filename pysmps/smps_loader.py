@@ -419,7 +419,7 @@ def load_mps(path):
                     i = col_names.index(line[0])
                 except:
                     if len(A[0]) == 0:
-                        A = [[0]] * len(row_names)
+                        A = [[0] for _ in range(len(row_names))]
                     else:
                         for k in range(len(row_names)):
                             A[k].append(0)
@@ -546,7 +546,7 @@ def load_2stage_problem(path):
     c.extend([0] * determ_ineq)
     for k in range(len(T_matrix)):
         T_matrix[k].extend([0] * determ_ineq)
-    A_add = [[0] * determ_ineq] * len(A)
+    A_add = [[0 for _ in range(determ_ineq)] for _ in range(len(A))]
     k = 0
     for i in range(len(A)):
         if determ_cnstr[i] != "E":
@@ -557,7 +557,7 @@ def load_2stage_problem(path):
     
     stochastic_ineq = sum(x != "E" for x in stochastic_cnstr)
     q_array.extend([0] * stochastic_ineq)
-    W_add = [[0] * stochastic_ineq] * len(W)
+    W_add = [[0 for _ in range(stochastic_ineq)] for _ in range(len(W))]
     k = 0
     for i in range(W.shape[0]):
         if stochastic_cnstr[i] != "E":
