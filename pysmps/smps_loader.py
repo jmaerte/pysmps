@@ -109,7 +109,7 @@ class LinearTransform(object):
     def add_distribution(self, type_of, name, parameters):
         self.variables.append({"type": type_of, "name": name, "parameters": parameters})
         if self.matrix.shape[1] == 0:
-            self.matrix = [[0]] * len(self.places)
+            self.matrix = [[0] for _ in range(len(self.places))]
         else:
             for k in len(self.matrix):
                 self.matrix[k].append(0)
