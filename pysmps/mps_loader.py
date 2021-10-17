@@ -107,7 +107,7 @@ def load_mps(path):
                     continue
                 variable_name = line[0]
                 if variable_name not in variable:
-                    variable[variable_name] = {"type": COL_TYPES[integral_marker], "name": variable_name, "bnd_lower": 0, "bnd_upper": math.inf}
+                    variable[variable_name] = {"type": COL_TYPES[integral_marker], "name": variable_name, "bnd_lower": -math.inf, "bnd_upper": math.inf}
                 j = 1
                 while j < len(line) - 1:
                     if line[j] == objective["name"]:
@@ -137,6 +137,10 @@ def load_mps(path):
             elif mode in [CORE_FILE_BOUNDS_MODE_NAME_GIVEN, CORE_FILE_BOUNDS_MODE_NO_NAME]:
                 if line[0] in BND_TYPES:
                     variable[line[2]][BND_TYPE[line[0]]] = BND_FUNC[line[0]](float(line[3]), variable[line[2]][BND_TYPE[line[0]]])
+                elif line[0] == "BV":
+                    variable[line[2]]["bnd_lower"] = 0
+                    variable[line[2]]["bnd_upper"] = 1
+                    variable[line[2]]["type"] = "Integer"
                 elif line[0] == "FX":
                     variable[line[2]]["bnd_lower"] = BND_FUNC["LO"](float(line[3]), variable[line[2]]["bnd_lower"])
                     variable[line[2]]["bnd_upper"] = BND_FUNC["UP"](float(line[3]), variable[line[2]]["bnd_upper"])
@@ -147,4 +151,4 @@ def load_mps(path):
         for key, c in constraints.items():
             c["bounds"] = c["bounds"][rhs_names[0]]
     
-    return dict(objective = objective, variable = variable, constraints = constraints, rhs_names = rhs_names)
+    return dict(objective = objective, variables = variable, constraints = constraints, rhs_names = rhs_names)
