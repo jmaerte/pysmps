@@ -1,0 +1,84 @@
+*********************************************************************
+* TEST CASE 01; TESTS IF A BASIC MPS PROBLEM IS READ CORRECTLY      *
+*       INCLUDES:                                                   *
+*           * VARIABLES WITH TWO-SIDED BOUNDS                       *
+*           * VARIABLES WITH SINGLE-SIDED BOUNDS BUT MULTIPLE       *
+*               "CONFLICTING" BOUNDS GIVEN                          *
+*           * INTEGER VARIABLES                                     *
+*           * BINARY VARIABLES                                      *
+*           * FREE VARIABLES                                        *
+*           * FIXED VARIABLES                                       *
+*           * LEQ, GEQ, EQ CONSTRAINTS                              *
+*                                                                   *
+*********************************************************************
+
+    NAME          test_case01
+    ROWS
+     N  obj
+     L  leq
+     E  eq
+     G  geq
+
+    COLUMNS
+        c_bnd       leq     5.000000000000e+00
+        c_bnd       eq      2.100000000000e+01
+        c_bnd       geq     1.800000000000e+01
+        c_bnd       obj     1.500000000000e+00
+
+        c_bnd2      eq      -1.000000000000e+01
+        c_bnd2      obj     2.500000000000e+00
+
+        c_bnd3      leq     -1.000000000000e+01
+        c_bnd3      obj     -3.500000000000e+00
+
+        c_bnd_up    leq     -1.000000000000e+00
+        c_bnd_up    geq     -5.000000000000e+00
+        c_bnd_up    obj     -4.500000000000e+00
+
+        c_bnd_lo    leq     1.000000000000e+00
+        c_bnd_lo    eq      3.000000000000e+00
+        c_bnd_lo    obj     5.500000000000e+00        
+
+        MARK      'MARKER'                 'INTORG'
+        int         leq     1.500000000000e+00
+        int         eq      2.500000000000e+00
+        int         geq     -3.500000000000e+00
+        int         obj     9.000000000000e+00
+        MARK      'MARKER'                 'INTEND'
+
+        bin         leq     1.500000000000e+02
+        bin         obj     9.500000000000e+00
+
+        free        geq     2.500000000000e+02
+        free        obj     -1.205000000000e+02
+
+        fixed       obj     1.205000000000e+02
+    RHS
+        RHS       leq       -5.000000000000e+01
+        RHS       eq        1.000000000000e+02
+        RHS       geq       -8.500000000000e+01
+    BOUNDS
+     LO BND         c_bnd     -5.000000000000e+00
+     UP BND         c_bnd     1.000000000000e+01
+
+     LO BND         c_bnd2    5.000000000000e+00
+     UP BND         c_bnd2    1.000000000000e+02
+
+     LO BND         c_bnd3    -1.000000000000e+02
+     UP BND         c_bnd3    -5.000000000000e+00
+
+     UP BND         c_bnd_up  5.000000000000e+00
+     UP BND         c_bnd_up  1.000000000000e+01
+
+     LO BND         c_bnd_lo -5.000000000000e+00
+     LO BND         c_bnd_lo -1.000000000000e+01
+
+     LO BND         int       5.000000000000e+00
+     UP BND         int       1.000000000000e+01
+
+     BV BND         bin
+
+     FR BND         free
+
+     FX BND         fixed     2.050000000000e+01
+    ENDATA
