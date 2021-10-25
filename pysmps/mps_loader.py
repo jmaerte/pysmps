@@ -43,7 +43,7 @@ STOCH_FILE_INDEP_DISTRIB_MODE = "INDEP_DISTRIB"
 COL_TYPES = {1: "Integer", 0: "Continuous"}
 BND_TYPES = ["LO", "UP"]
 BND_TYPE = {"LO": "bnd_lower", "UP": "bnd_upper"}
-BND_FUNC = {"LO": max, "UP": min}
+BND_FUNC = {"LO": max, "UP": lambda a, b : a if b == 0 else min(a,b)}
 
 
 # public
@@ -107,7 +107,7 @@ def load_mps(path):
                     continue
                 variable_name = line[0]
                 if variable_name not in variable:
-                    variable[variable_name] = {"type": COL_TYPES[integral_marker], "name": variable_name, "bnd_lower": -math.inf, "bnd_upper": math.inf}
+                    variable[variable_name] = {"type": COL_TYPES[integral_marker], "name": variable_name, "bnd_lower": 0, "bnd_upper": math.inf}
                 j = 1
                 while j < len(line) - 1:
                     if line[j] == objective["name"]:
