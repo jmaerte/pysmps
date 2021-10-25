@@ -43,7 +43,7 @@ STOCH_FILE_INDEP_DISTRIB_MODE = "INDEP_DISTRIB"
 COL_TYPES = {1: "Integer", 0: "Continuous"}
 BND_TYPES = ["LO", "UP"]
 BND_TYPE = {"LO": "bnd_lower", "UP": "bnd_upper"}
-BND_FUNC = {"LO": max, "UP": lambda a, b : a if b == 0 else min(a,b)}
+BND_FUNC = {"LO": lambda a, b : a if b == 0 else min(a,b), "UP": min}
 
 
 # public
