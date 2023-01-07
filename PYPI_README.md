@@ -2,115 +2,92 @@
 
 This is a utility script for parsing MPS and SMPS file formats. It offers two main functions `load_mps` for loading mps files and `load_smps` for loading smps file directory.
 
-### `load_mps`
+**DISCLAIMER** This parser assumes a certain order of instructions in the MPS file and so a latter instruction colliding with an earlier one counts. In case you find a unnatural behavior in this parser let me know via github.
 
-The `load_mps(path)` method takes a `path` variable as input. It should be a .cor or .mps file.
-It opens the file with read-permissions and parses the described linear program into the following format:
+### `read_mps`
 
-- `name`: The name given to the linear program (can't be blank)
-- `objective_name`: The name of the objective function value
-- `row_names`: list of row names
-- `col_names`: list of column names
-- `types`: list of constraint type indicators, i.e. either "E", "L" or "G" for equality, lower/equal or greater/equal constraint respectively.
-- `c`: the objective function coefficients
-- `A`: the constraint matrix
-- `rhs_names`: list of names of right hand sides (there can be multiple right hand side components be defined, seldom more than one though)
-- `rhs`: dictionary `(rhs_name) => b`, where `b` is the vector of constraint values for that given right hand side name.
-- `bnd_names`: list of names of box-bounds (seldom more than one)
-- `bnd`: dictionary `(bnd_name) => {"LO": v_l, "UP": v_u}` where `v_l` is the vector of lower bounds and `v_u` is the vector of upper bound values (defaults to `v_l = 0` and `v_u = +inf`).
+The `read_mps(path)` method takes a `path` variable as input. The contents of the file under `path` are assumed to be in MPS format.
+It opens the file and parses the described linear program into an instance of the class `MPS`. Note that `MPS` has always attached a group of the `RHS`, `BOUNDS` and `RANGES` sections. If there are no multiple groups in the file this is irrelevant to the user; in case there are multiple groups in the mps file given you can see the list of groups via the following methods:
 
-Finally this corresponds to the linear program
+* `MPS.bnd_names()` for a list of the boundary group names
+* `MPS.rhs_names()` for a list of the RHS group names
+* `MPS.range_names()` for a list of range names.
+
+In order to obtain the values for different choices of group names you can attach a group via
+
+* `MPS.attach_bnd(group)` to attach the boundary group with name `group`
+* `MPS.attach_rhs(group)` to attach the rhs group with name `group`
+* `MPS.attach_range(group)` to attach the range group with name `group`
+
+After attachment you can modify the linear program for this particular group choice via the methods for modification or obtain the linear program parameters for the choice via the getter functions:
+
+* `MPS.get_variables()` returns a `dict` mapping a variable name to a `dict` containing the `type` and bounds (`lower`, `upper`) w.r.t. the attached BOUNDS group
+* `MPS.get_rhs()` returns a `dict` mapping a **constraint** row name to the RHS value of the row w.r.t. the attached RHS group
+* `MPS.get_offsets()` returns a `dict` mapping an **objective** row name to the RHS value (i.e. offset) of the row w.r.t. the attached RHS group
+* `MPS.get_ranges()` returns a `dict` mapping a contraint row name to a `dict` containing the `upper` and `lower` deviation of the interval in which the row has to be from its respective RHS value w.r.t. the attached RANGES group
+
+In order to see the entire linear program (without having to attach groups) it is useful to convert the class instance into a `dict` via the pre-implemented functionality
 
 ```python
-min 	c * x
-
-s.t.	for each rhs_name with corresponding b:
-
-			A[types == "E",:] * x  = b[types == "E"]
-			A[types == "L",:] * x <= b[types == "L"]
-			A[types == "G",:] * x >= b[types == "G"]
-
-		for each bnd_name with corresponding v_l and v_u:
-
-			v_l <= x < v_u
-
+M = read_mps("some/path")
+dict(M)
 ```
 
-### `load_smps`
+This function returns a `dict` with all the information of `M`. This `dict` is a mapping of the following kind:
+
+```python
+name -> str: Name of program
+objective_names -> list of str: Names of the objective rows
+bnd_names -> list of str: Names of the different boundary configurations given
+rhs_names -> list of str: Names of the different RHS configurations given
+range_names -> list of str: Names of range configurations
+constraint_names -> list of str: Names of constraint rows
+variable_names -> list of str: Names of variables
+objectives -> dict: Maps each of objective_names to a dict mapping each of variable_names with non-zero
+    			coefficient for this objective to its respective coefficient
+variables -> dict: Maps each of bnd_names to a dict mapping each of variable_names to a dict describing 				the variable for this particular boundary setting. The dict has keys "type", "lower" and 
+    			"upper".
+constraints -> dict: Maps each of constraint_names to a dict containing the type of the constraint
+    			("E", "L", "G") and a dict mapping each of variable_names having non-zero coefficient for
+        		this constraint to its coefficient
+rhs -> dict: Maps each of rhs_names to a dict mapping each of of constraint_names to its respective rhs
+    			value
+offsets -> dict: Maps each of rhs_names to a dict mapping each of objective_names to their offset in this
+    			particular rhs configuration
+ranges -> dict: Maps each of range_names to a dict containing the ranges for this particular range
+    			configuration. This dict maps one of constraint_names to a dict containing "lower" and
+        		"upper" if ranges are given for it
+```
+
+
+
+**NOTE** Currently this code does not support `SOS` tags. However the reader will skip over this section with no errors. The default behavior of this parser is as follows:
+
+* The default bounds for continuous aswell as integer values are `{lower: 0, upper: math.inf}`. You can change this by calling the `read_mps` function with the additional arguments `c_lower, c_upper, i_lower, i_upper` and the respective values for continuous and integer default bounds. Note that the `i_lower` and `i_upper` bounds are only applied to variables declared in an `INTORG`, `INTEND` block. They are not applied to continuously declared variables which become integral by `LI` or `UI` BOUNDS tags.
+* If conflicting BOUNDS, RHS or RANGE values are given the one given last counts.
+* The BOUNDS tags have following default bound values:
+  * The default bounds if none are given are `i_lower, c_lower: 0` and `i_upper, c_upper: math.inf`
+  * `MI` has a default upper bound of `0`; can be set by the `MI_upper` argument
+  * `SC` has a default lower bound of `1` if no argument is given; can be set by the `SC_lower` argument
+* The general behaviour of BOUNDS tags is that the relevant portions of previous BOUNDS is overwritten; `MI` for example overwrites the previous `lower` bound to `-math.inf` but also the previous `upper` bound to the given upper bound or `MI_default`. Thus the file should set explicit upper bounds either in the `MI` line or after it but never before (similar behavior for `SC`).
+* As mentioned above the `LI` and `UI` commands do not apply the integer default bounds `i_lower`, `i_upper`, `LI` and `UI` only change the variable to `Integer` and set the respective bound; the other bound stays as is.
+* Variable types can be `Integer`, `Continuous` or `Semi-Continuous`
+
+`load_smps`
 
 This function makes use of the `load_mps` function for parsing the .cor file. The SMPS file format consists of three files, a .cor, .tim and .sto file. The .cor file is in MPS format. Further the function expects a parameter `path` to be such that `path + ".cor"` is the core file, `path + ".tim"` the time file and `path + ".sto"` is the stochastic file.
-It *does not* support scenarios yet!
-It returns a stochastic multi-stage problem in the following format
 
-- `name`: name of the program (must be the same in all 3 files)
+**NOTE** It *does not* support scenarios or nodes!
 
-- `objective_name`: name of the objective function value
-
-- `constraints`: list of tuples `(name, period, type)` for each constraint. It gives a name, a period in which the constraints appears and a type, i.e. "E", "L" or "G" as in MPS.
-
-- `variables`: list of tuples `(name, period, type)` for each variable. It defines a name and a period in which the variable joins the program. `type` denotes a string that is either integral or continuous depending on whether the INTORG MARKER was set when instantiating the variable.
-
-- `c`: vector of objective function coefficients (of all periods)
-
-- `A`: matrix of constraint coefficients (of all periods)
-
-- `rhs_names`: list of rhs names as in MPS
-
-- `rhs`: dictionary as in MPS
-
-- `bounds`: dictionary as in MPS
-
-- `periods`: list of all periods appearing. `len(periods)` is the number stages.
-
-- `blocks`: dictionary of `Block`,`LinearTransform` or `SubRoutine` objects. Dependent on what the .sto file defined. `Blocks` are independent random variables (every case of a `Block` must be combined with each case of another `Block` to get all possible appearences; the probabilities multiply), `LinearTransform` are linear transformations of continuous random variables. The user needs to write the sample script on his own. `SubRoutine` is a left-out in the file; it presupposes the user to know what to do with these values.
-
-- `independent_variables`: dictionary `((i,j)) => {position, period, distrib}`, where `(i,j)` is the tuple of row/column indices. If one of them is `-1` this means that it's either an objective value or a rhs-value respectively. `position` is a dictionary adapting to where the entry is (objective value, rhs value or matrix value), `period` defines the period in which this variable is stochastic, `distrib` is either a definition of a continuous random variables
-
-  ```python
-  distrib: {type: "N(mu, sigma**2)"/"U(a, b)"/"B(p, q)"/"G(p, b)"/"LN(mu, sigma**2)", parameters}
-  ```
-
-  where parameters is a dictionary defining the required parameters. In the discrete case it is a list of tuples `(v,p)`, where `v` is the value of this position and `p` is the probability of it appearing.
-
-For an example on how to use this format i recommand looking at the code for `load_2stage_problem`.
-
-### `load_2stage_problem`
-
-Loads a SMPS directory and tries to bring it into a 2-staged stochastic linear program with fixed recourse. Output is a dictionary containing the values
-
-- `c`: first stage objective function value
-- `A`: first stage (equality) constraint coefficient matrix
-- `b`: first stage constraint values
-- `q`: list of second stage objective function coefficients (each case one entry)
-- `h`: list of second stage constraint values (each case one entry)
-- `T`: list of second stage constraint values for deterministic variables (each case one entry)
-- `W`: recourse matrix (since it's fixed recourse this is not a list)
-- `p`: list of probabilities for each case
-
-The constellations in which `(q,h,T,W)` appear are the realizations given by `(q[k], h[k], T[k], W)`.
-The problem then resembles one of the form
+Similar to the `MPS` object the `SMPS` object can be converted into a `dict` containing all information of the object. This `dict` has the same fields as its underlying `MPS` class from the .cor file. The remaining fields are:
 
 ```python
-min		c * x + E_p[q * y]
-
-s.t.	A * x         = b
-    	T * x + W * y = h
-    	x, y >= 0
+row_periods -> dict: Maps every period name to a list of str containing the rows belonging to this period
+col_periods -> dict: Maps every period name to a list of str containing the cols belonging to this period
+distributions -> dict: Maps every period for which distributions are given to a dict mapping every pair
+    			(i.e. tuple) of row and col names to a dict describing the distribution. This dict either 
+        		declares the distribution directly if one is given or refers to a block distribution
+blocks -> dict: Maps every period to a dict of blocks describing the distribution for each block
 ```
 
-which is a formal expression since T and h are also stochastic. In fact this notation means we assert the stochastic constraints inside of the expectation, making it a function of x only.
-
-For casting the SMPS files into such a form we need to make certain assertments:
-
-- The upper right matrix needs to be zeroes only.
-- We only have one righthand side defined (`len(rhs_names) == 1`).
-- There are no boundaries or if we defined some they are the default values.
-- The first period parsed from the time file is the deterministic one, the other one is the stochastic one (especially there can only be two periods).
-- `A` and `W` are not stochastic.
-
-This script however does
-
-- convert inequality constraints (deterministic and stochastic) into equality constraints by adding slack variables at the right places
-- calculate all combinations of independent accurances of stochastic components (BLOCKS and INDEP)
-- calculate the probabilities as products of independent elementary probabilities alongside.
-
+The same default behavior as in the `read_mps` function hold.
